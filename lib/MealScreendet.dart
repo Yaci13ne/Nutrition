@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import 'dart:io';
 
 class MealDetailScreen extends StatelessWidget {
   final Map<String, dynamic> meal;
 
-  const MealDetailScreen({Key? key, required this.meal}) : super(key: key);
+  const MealDetailScreen({super.key, required this.meal});
 
   @override
   Widget build(BuildContext context) {

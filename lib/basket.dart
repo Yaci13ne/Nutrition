@@ -7,8 +7,8 @@ import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter_application_1/sidebar.dart';
 import 'package:provider/provider.dart';
 import 'basket_manager.dart';
-import 'home.dart';
-import 'theme_notifier.dart'; // Import ThemeNotifier
+import 'theme_notifier.dart';
+import 'user_provider.dart'; // Import ThemeNotifier
 
 class BasketScreen extends StatefulWidget {
   final bool fromAddToBasket;
@@ -23,7 +23,7 @@ class _BasketScreenState extends State<BasketScreen> {
   BasketManager get basketManager => Provider.of<BasketManager>(context, listen: false);
   String searchQuery = '';
   int _currentIndex = 0;
-  Timer? _expiryTimer;
+   Timer? _expiryTimer;
 
   @override
   void dispose() {
@@ -34,14 +34,11 @@ class _BasketScreenState extends State<BasketScreen> {
   @override
   void initState() {
     super.initState();
-    final basketManager = Provider.of<BasketManager>(context, listen: false);
-    basketManager.removeExpiredItems();
-    
+    // Access the manager through context when needed
     _expiryTimer = Timer.periodic(Duration(minutes: 1), (timer) {
-      basketManager.removeExpiredItems();
+      Provider.of<BasketManager>(context, listen: false).removeExpiredItems();
     });
   }
-
   int getTotalCalories() {
     final basketManager = Provider.of<BasketManager>(context, listen: false);
     return basketManager.confirmedItems.fold(0, (sum, item) {
@@ -107,9 +104,11 @@ class _BasketScreenState extends State<BasketScreen> {
   @override
   Widget build(BuildContext context) {
     final themeNotifier = Provider.of<ThemeNotifier>(context);
+    final userProvider = Provider.of<UserProvider>(context); // Add this line
     final isDarkMode = themeNotifier.isDarkMode;
 
-    return Scaffold(  drawer: Sidebar(
+    return Scaffold(
+      drawer: Sidebar(
         toggleDarkMode: () => themeNotifier.toggleTheme(),
         isDarkMode: isDarkMode,
       ),
@@ -140,9 +139,11 @@ class _BasketScreenState extends State<BasketScreen> {
                     Spacer(),
                     CircleAvatar(
                       radius: 25,
-                      backgroundImage: NetworkImage(
-                        "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=1000&auto=format&fit=crop",
-                      ),
+                      backgroundImage: userProvider.user.profileImage != null
+                          ? FileImage(userProvider.user.profileImage!)
+                          : NetworkImage(
+                              "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=1000&auto=format&fit=crop",
+                            ) as ImageProvider,
                       backgroundColor: isDarkMode ? Colors.grey[700] : Colors.grey[300],
                     ),
                   ],
@@ -152,8 +153,7 @@ class _BasketScreenState extends State<BasketScreen> {
                   style: TextStyle(
                     fontSize: 12, 
                     fontFamily: 'Lobster',
-                    color: isDarkMode ? Colors.grey[400] : Colors.grey[600],
-                  ),
+                    color: isDarkMode ? Colors.grey[400] : Colors.grey[600],    ),
                 ),
                 SizedBox(height: 10),
                 TextField(

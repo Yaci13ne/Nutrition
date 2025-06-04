@@ -9,7 +9,8 @@ import 'package:provider/provider.dart';
 import 'item.dart';
 import 'meal_creator.dart';
 import 'theme_notifier.dart'; // Make sure you have this import
-import 'sidebar.dart'; // Make sure you have this import
+import 'sidebar.dart';
+import 'user_provider.dart'; // Make sure you have this import
 
 class GymFitXHome extends StatefulWidget {
   final Function(Map<String, dynamic>)? onFoodItemClicked;
@@ -30,6 +31,27 @@ class GymFitXHome extends StatefulWidget {
 }
 
 class GymFitXHomeState extends State<GymFitXHome> {
+  
+// Keep only one _loadClickedItems method (the more complete one)
+// Remove the duplicate _initializeData() method and keep only one:
+
+Future<void> _initializeData() async {
+  setState(() {
+    _isLoadingFavorites = true;
+    _isLoadingMeals = true;
+  });
+  
+  await _loadFavorites();
+  await loadClickedItems();
+  await _loadSavedMeals();
+  
+  setState(() {
+    _isLoadingFavorites = false;
+    _isLoadingMeals = false;
+  });
+}
+  List<Map<String, dynamic>> foodItems = [];
+
   List<Map<String, dynamic>> savedMeals = [];
   bool _isLoadingFavorites = true;
   bool _isLoadingMeals = true;
@@ -52,6 +74,11 @@ class GymFitXHomeState extends State<GymFitXHome> {
     'Max Fats',
     'Min Fats',
   ];
+Future<List<Map<String, dynamic>>> _loadCustomFoodItems() async {
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  String? jsonString = prefs.getString('clickedItems');
+return List<Map<String, dynamic>>.from(json.decode(jsonString ?? '[]'));
+}
 
   @override
   void initState() {
@@ -59,13 +86,44 @@ class GymFitXHomeState extends State<GymFitXHome> {
     _initializeData();
   }
 
-  Future<void> _initializeData() async {
-    await Future.wait([
-      _loadFavorites(),
-      _loadClickedItems(),
-      _loadSavedMeals(),
-    ]);
-  }
+// Add this method to GymFitXHome
+Future<void> refreshData() async {
+  await loadClickedItems();
+  if (mounted) setState(() {});
+}
+Future<void> refreshFoodList() async {
+  await loadClickedItems();
+  if (mounted) setState(() {});
+}
+Future<void> loadClickedItems() async {
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  String? clickedItemsJson = prefs.getString('clickedItems');
+
+  List<Map<String, dynamic>> loadedItems =
+      List<Map<String, dynamic>>.from(json.decode(clickedItemsJson ?? '[]'));
+  
+  setState(() {
+    clickedFoodItems = loadedItems;
+    
+    // Remove all custom items first
+    foodItems.removeWhere((item) => item['createdByMe'] == true);
+    
+    // Add clicked items only if they don't already exist
+    for (var food in loadedItems) {
+      if (!foodItems.any((item) => item['name'] == food['name'])) {
+        foodItems.add({
+          'name': food['name'],
+          'calories': int.tryParse(food['calories']?.toString() ?? '0') ?? 0,
+          'protein': double.tryParse(food['protein']?.toString() ?? '0') ?? 0.0,
+          'carbs': double.tryParse(food['carbs']?.toString() ?? '0') ?? 0.0,
+          'fats': double.tryParse(food['fats']?.toString() ?? '0') ?? 0.0,
+          'image': food['image'] ?? 'assets/default.png',
+          'createdByMe': true,
+        });
+      }
+    }
+  });
+}
 // Replace your _navigateToMealCreator with this:
   void _navigateToMealCreator() async {
     final result = await Navigator.push(
@@ -100,22 +158,20 @@ class GymFitXHomeState extends State<GymFitXHome> {
       SharedPreferences prefs = await SharedPreferences.getInstance();
       List<String>? savedMealsJson = prefs.getStringList('savedMeals');
 
-      if (savedMealsJson != null) {
-        setState(() {
-          savedMeals = savedMealsJson
-              .map((meal) {
-                try {
-                  return json.decode(meal) as Map<String, dynamic>;
-                } catch (e) {
-                  print("Error decoding meal: $e");
-                  return <String, dynamic>{};
-                }
-              })
-              .where((meal) => meal.isNotEmpty)
-              .toList();
-        });
-      }
-    } catch (e) {
+      setState(() {
+        savedMeals = savedMealsJson
+            ?.map((meal) {
+              try {
+                return json.decode(meal) as Map<String, dynamic>;
+              } catch (e) {
+                print("Error decoding meal: $e");
+                return <String, dynamic>{};
+              }
+            })
+            .where((meal) => meal.isNotEmpty)
+            .toList()?? [];
+      });
+        } catch (e) {
       print("Error loading meals: $e");
     } finally {
       setState(() => _isLoadingMeals = false);
@@ -176,7 +232,8 @@ class GymFitXHomeState extends State<GymFitXHome> {
       SharedPreferences prefs = await SharedPreferences.getInstance();
       List<String>? savedFavorites = prefs.getStringList('favorites');
       setState(() {
-        favoriteFoods = savedFavorites?.toSet() ?? <String>{};
+      // Line 234
+favoriteFoods = savedFavorites?.toSet() ?? <String>{};
         print('Loaded favorites: ${favoriteFoods.toList()}'); // Debug print
         _isLoadingFavorites = false;
       });
@@ -211,26 +268,12 @@ class GymFitXHomeState extends State<GymFitXHome> {
     }
   }
 
-  Future<void> _loadClickedItems() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? clickedItemsJson = prefs.getString('clickedItems');
-    if (clickedItemsJson != null) {
-      setState(() {
-        clickedFoodItems =
-            List<Map<String, dynamic>>.from(json.decode(clickedItemsJson));
-      });
-    }
-  }
 
   Future<void> _printStoredClickedItems() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? clickedItemsJson = prefs.getString('clickedItems');
-    if (clickedItemsJson != null) {
-      print("Stored clicked items: $clickedItemsJson");
-    } else {
-      print("No clicked items stored");
+    print("Stored clicked items: $clickedItemsJson");
     }
-  }
 
   void _saveClickedFoodItem(Map<String, dynamic> foodItem) async {
     // Ensure required fields exist
@@ -284,6 +327,11 @@ class GymFitXHomeState extends State<GymFitXHome> {
     }
   }
 
+String getItemName(Map<String, dynamic> item) {
+  return item['name'] ?? item['mealName'] ?? '';
+}
+
+
   @override
   Widget build(BuildContext context) {
     final themeNotifier = Provider.of<ThemeNotifier>(context);
@@ -304,7 +352,7 @@ List<Map<String, dynamic>> foodItems = [
     'protein': 27.0,
     'carbs': 0.5,
     'fats': 19.5,
-    'image': 'assets/chickenwings.jpg',
+    'image': 'assets/chickenwings.png',
   },
   {
     'name': 'Rice',
@@ -379,14 +427,7 @@ List<Map<String, dynamic>> foodItems = [
     'fats': 0.1,
     'image': 'assets/onions.png',
   },
-  {
-    'name': 'Garlic',
-    'calories': 149,
-    'protein': 6.4,
-    'carbs': 33.0,
-    'fats': 0.5,
-    'image': 'assets/garlic.png',
-  },
+
   {
     'name': 'Carrots',
     'calories': 41,
@@ -441,22 +482,28 @@ List<Map<String, dynamic>> foodItems = [
     'protein': 5.0,
     'carbs': 14.5,
     'fats': 0.4,
-    'image': 'assets/greenpeas.jpg',
+    'image': 'assets/greenpeas.png',
   },
 
 
 ];
 
-
-    foodItems.addAll(widget.foodData.map((food) => {
-          'name': food['name'] ?? 'Unknown',
-          'calories': int.tryParse(food['calories'] ?? '0') ?? 0,
-          'protein': double.tryParse(food['protein'] ?? '0') ?? 0,
-          'carbs': double.tryParse(food['carbs'] ?? '0') ?? 0,
-          'fats': double.tryParse(food['fats'] ?? '0') ?? 0,
-          'image': food['image'] ?? 'assets/default.png',
-          'createdByMe': true,
-        }));
+setState(() {
+  // Only add items that don't already exist in foodItems
+  foodItems.addAll(
+    clickedFoodItems.where((clickedFood) => 
+      !foodItems.any((existingFood) => existingFood['name'] == clickedFood['name'])
+    ).map((food) => {
+      'name': food['name'],
+      'calories': int.tryParse(food['calories']?.toString() ?? '0') ?? 0,
+      'protein': double.tryParse(food['protein']?.toString() ?? '0') ?? 0.0,
+      'carbs': double.tryParse(food['carbs']?.toString() ?? '0') ?? 0.0,
+      'fats': double.tryParse(food['fats']?.toString() ?? '0') ?? 0.0,
+      'image': food['image'] ?? 'assets/default.png',
+      'createdByMe': true,
+    })
+  );
+});
 
     if (widget.food.isNotEmpty &&
         !foodItems.any((item) => item['name'] == widget.food['name'])) {
@@ -488,20 +535,27 @@ List<Map<String, dynamic>> foodItems = [
         });
       }
     }
+print("Currently selected filter: $selectedFilterIndex");
+print("Favorites saved: $favoriteFoods");
 
 // Apply filters
-    filteredFoodItems = allItems.where((item) {
-      final itemName = item['name'];
+  // In your build method, modify the filtering logic:
 
-      if (selectedFilterIndex == 0) return true; // All items
-      if (selectedFilterIndex == 1)
-        return favoriteFoods.contains(itemName); // Favorites
-      if (selectedFilterIndex == 2) return item['isMeal'] == true; // Meals
-      if (selectedFilterIndex == 3)
-        return item['createdByMe'] == true; // Created By Me
-
-      return itemName.toLowerCase().contains(searchQuery.toLowerCase());
-    }).toList();
+filteredFoodItems = allItems.where((item) {
+  final itemName = getItemName(item);
+  final isFav = favoriteFoods.contains(itemName);
+  
+  if (searchQuery.isNotEmpty) {
+    return itemName.toLowerCase().contains(searchQuery.toLowerCase());
+  }
+  
+  if (selectedFilterIndex == 0) return true; // All items
+  if (selectedFilterIndex == 1) return isFav; // Favorites
+  if (selectedFilterIndex == 2) return item['isMeal'] == true; // Meals
+  if (selectedFilterIndex == 3) return item['createdByMe'] == true; // Created By Me
+  
+  return true;
+}).toList();
 
 // Apply sorting
     filteredFoodItems.sort((a, b) {
@@ -534,7 +588,9 @@ List<Map<String, dynamic>> foodItems = [
     if (selectedFilterIndex == 2) {
       filteredFoodItems = [];
     }
-   return Scaffold(
+       return PopScope(
+    canPop: false, // Blocks the back button
+    child: Scaffold(
       drawer: Sidebar(
         toggleDarkMode: () => themeNotifier.toggleTheme(),
         isDarkMode: isDarkMode,
@@ -545,33 +601,37 @@ List<Map<String, dynamic>> foodItems = [
           _buildHeader(context, isDarkMode),
           _buildSearchBar(isDarkMode),
           _buildFilterChips(isDarkMode),
-          _buildFoodGrid(foodItems, isDarkMode),
+          _buildFoodGrid(filteredFoodItems, isDarkMode),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 
+// In _buildHeader method of GymFitXHome
+Widget _buildHeader(BuildContext context, bool isDarkMode) {
+  final userProvider = Provider.of<UserProvider>(context);
 
- Widget _buildHeader(BuildContext context, bool isDarkMode) {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              
-              Image.asset(
-                isDarkMode ? 'assets/logo2.png' : 'assets/logo.png',
-                height: 50,
-              ),
-              Spacer(),
-              CircleAvatar(
-                radius: 25,
-                backgroundImage: NetworkImage(
-                  "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=1000&auto=format&fit=crop",
-                ),
-                backgroundColor: Colors.grey[300],
+  return Padding(
+    padding: const EdgeInsets.all(16.0),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Image.asset(
+              isDarkMode ? 'assets/logo2.png' : 'assets/logo.png',
+              height: 50,
+            ),
+            Spacer(),
+            CircleAvatar(
+              radius: 25,
+              backgroundImage: userProvider.user.profileImage != null
+                  ? FileImage(userProvider.user.profileImage!)
+                  : NetworkImage(
+                      "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=1000&auto=format&fit=crop",
+                    ) as ImageProvider,
+              backgroundColor: Colors.grey[300],
               ),
             ],
           ),
@@ -848,11 +908,13 @@ Widget _buildFoodCard(Map<String, dynamic> item, bool isDarkMode) {
             child: GestureDetector(
               onTap: () {
                 setState(() {
-                  if (isFavorite) {
-                    favoriteFoods.remove(food['name']);
-                  } else {
-                    favoriteFoods.add(food['name']);
-                  }
+                String foodName = getItemName(food);
+if (isFavorite) {
+  favoriteFoods.remove(foodName);
+} else {
+  favoriteFoods.add(foodName);
+}
+
                 });
                 _saveFavorites();
               },
@@ -956,11 +1018,13 @@ Widget _buildFoodCard(Map<String, dynamic> item, bool isDarkMode) {
               child: GestureDetector(
                 onTap: () async {
                   setState(() {
-                    if (isFavorite) {
-                      favoriteFoods.remove(mealName);
-                    } else {
-                      favoriteFoods.add(mealName);
-                    }
+                  String name = getItemName(meal);
+if (isFavorite) {
+  favoriteFoods.remove(name);
+} else {
+  favoriteFoods.add(name);
+}
+
                   });
                   await _saveFavorites();
                 },

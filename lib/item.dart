@@ -2,10 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_application_1/meal_creator.dart';
 import 'dart:math';
-import 'dart:ui' as ui;
-import 'basket.dart';
 import 'basket_manager.dart';
 import 'theme_notifier.dart'; // Add this import
 import 'package:provider/provider.dart'; // Add this import

@@ -36,10 +36,12 @@ class _MealCreatorState extends State<MealCreator> {
   final ImagePicker _picker = ImagePicker();
 
   @override
-  void initState() {
-    super.initState();
-    _loadSavedMeals();  // Charger les repas sauvegardés
-  }
+@override
+void initState() {
+  super.initState();
+  _loadSavedMeals();
+  _loadSavedItems(); // ✅ Load clicked items
+}
 
   Future<void> _saveToPreferences() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
@@ -54,29 +56,38 @@ class _MealCreatorState extends State<MealCreator> {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     List<String>? savedMeals = prefs.getStringList('meal_list');
 
-    if (savedMeals != null) {
-      setState(() {
-        mealList = savedMeals.map((meal) {
-          List<String> fields = meal.split(',');
-          return {
-            'name': fields[0],
-            'description': fields[1],
-            'foods': fields.sublist(2), // Stocker les aliments dans le repas
-          };
-        }).toList();
-      });
+    setState(() {
+      mealList = savedMeals?.map((meal) {
+        List<String> fields = meal.split(',');
+        return {
+          'name': fields[0],
+          'description': fields[1],
+          'foods': fields.sublist(2), // Stocker les aliments dans le repas
+        };
+      }).toList()?? [];
+    });
     }
-  }
 
   Future<void> _loadSavedItems() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? savedItemsJson = prefs.getString('clickedItems');
-    if (savedItemsJson != null) {
-      setState(() {
-        savedFoodItems = List<Map<String, dynamic>>.from(json.decode(savedItemsJson));
-      });
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  String? savedItemsJson = prefs.getString('clickedItems');
+final loadedItems = List<Map<String, dynamic>>.from(json.decode(savedItemsJson ?? '[]'));
+  setState(() {
+    savedFoodItems = loadedItems;
+    for (var item in savedFoodItems) {
+      foodItems.add(FoodItem(
+        id: uuid.v4(),
+        name: item['name'],
+        description: "${item['calories']} calories",
+        image: item['image'],
+        protein: item['protein']?.toDouble() ?? 0.0,
+        carbs: item['carbs']?.toDouble() ?? 0.0,
+        fats: item['fats']?.toDouble() ?? 0.0,
+      ));
     }
-  }
+  });
+}
+
 
   int getTotalCalories() {
     return foodItems.fold(0, (sum, item) {
@@ -121,9 +132,9 @@ class _MealCreatorState extends State<MealCreator> {
           name: result['name'] ?? 'Unknown',
           description: "${result['calories'] ?? '0'} calories",
           image: result['image'],
-          protein: result['protein']?.toDouble() ?? 0,
-          carbs: result['carbs']?.toDouble() ?? 0,
-          fats: result['fats']?.toDouble() ?? 0,
+          protein: result['protein']?.toDouble() ?? 133,
+          carbs: result['carbs']?.toDouble() ?? 333,
+          fats: result['fats']?.toDouble() ?? 69,
         ));
       });
     }

@@ -6,9 +6,14 @@ import 'package:flutter_application_1/theme_notifier.dart';
 import 'package:provider/provider.dart';
 import 'basket_manager.dart';
 import 'sidebar.dart';
+import 'user_provider.dart';
 
 class Dashboard extends StatefulWidget {
-  const Dashboard({super.key});
+  final NutritionGoals? goals;
+
+
+
+  const Dashboard({super.key, this.goals});
 
   @override
   _DashboardState createState() => _DashboardState();
@@ -46,7 +51,22 @@ class _DashboardState extends State<Dashboard> {
   Widget build(BuildContext context) {
     final themeNotifier = Provider.of<ThemeNotifier>(context);
     final basketManager = Provider.of<BasketManager>(context);
-    String today = "${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}";
+    final userProvider =
+        Provider.of<UserProvider>(context); // Get the user provider
+    String today =
+        "${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year}";
+
+    print('Final goals in Dashboard: ${widget.goals?.dailyCalories}');
+
+    final goals = widget.goals ?? userProvider.calculateNutritionGoals();
+    final dailyCalories = goals.dailyCalories;
+    final proteinGoal = goals.proteinGoal;
+    final fatGoal = goals.fatGoal;
+    final carbsGoal = goals.carbsGoal;
+    final weight = goals.weight;
+    print('Final goals in Dashboard: ${widget.goals?.weight}');
+    print('Final go0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000als in Dashboard: ${widget.goals?.height}');
+    print('Final go00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000als in Dashboard: ${widget.goals?.age}');
 
     return Scaffold(
       drawer: Sidebar(
@@ -58,7 +78,9 @@ class _DashboardState extends State<Dashboard> {
         height: double.infinity,
         decoration: BoxDecoration(
           image: DecorationImage(
-            image: AssetImage(themeNotifier.isDarkMode ? 'assets/fill3.png' : 'assets/fill.png'),
+            image: AssetImage(themeNotifier.isDarkMode
+                ? 'assets/fill3.png'
+                : 'assets/fill.png'),
             fit: BoxFit.cover,
           ),
         ),
@@ -69,17 +91,20 @@ class _DashboardState extends State<Dashboard> {
             children: [
               Row(
                 children: [
-                
                   Image.asset(
-                    themeNotifier.isDarkMode ? 'assets/logo2.png' : 'assets/logo.png',
+                    themeNotifier.isDarkMode
+                        ? 'assets/logo2.png'
+                        : 'assets/logo.png',
                     height: 50,
                   ),
                   Spacer(),
                   CircleAvatar(
                     radius: 25,
-                    backgroundImage: NetworkImage(
-                      "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=1000&auto=format&fit=crop",
-                    ),
+                    backgroundImage: userProvider.user.profileImage != null
+                        ? FileImage(userProvider.user.profileImage!)
+                        : NetworkImage(
+                            "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=1000&auto=format&fit=crop",
+                          ) as ImageProvider,
                     backgroundColor: Colors.grey[300],
                   ),
                 ],
@@ -89,7 +114,9 @@ class _DashboardState extends State<Dashboard> {
                 style: TextStyle(
                   fontSize: 12,
                   fontFamily: 'Lobster',
-                  color: themeNotifier.isDarkMode ? Colors.white : const Color.fromRGBO(0, 0, 0, 1),
+                  color: themeNotifier.isDarkMode
+                      ? Colors.white
+                      : const Color.fromRGBO(0, 0, 0, 1),
                 ),
               ),
               SizedBox(height: 10),
@@ -102,7 +129,9 @@ class _DashboardState extends State<Dashboard> {
                   Text(
                     "Today",
                     style: TextStyle(
-                      color: themeNotifier.isDarkMode ? Colors.green[300] : Colors.green[900],
+                      color: themeNotifier.isDarkMode
+                          ? Colors.green[300]
+                          : Colors.green[900],
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
                     ),
@@ -110,7 +139,9 @@ class _DashboardState extends State<Dashboard> {
                   Text(
                     today,
                     style: TextStyle(
-                      color: themeNotifier.isDarkMode ? Colors.green[300] : Colors.green[800],
+                      color: themeNotifier.isDarkMode
+                          ? Colors.green[300]
+                          : Colors.green[800],
                       fontSize: 14,
                     ),
                   ),
@@ -121,12 +152,15 @@ class _DashboardState extends State<Dashboard> {
               /// Progress Circle (Calories)
               Center(
                 child: HomePageProgress(
-                  percentage: (basketManager.totalCalories / 2230) * 100,
-                  color: themeNotifier.isDarkMode ? Colors.green[300]! : Colors.green,
+                  percentage:
+                      (basketManager.totalCalories / dailyCalories) * 100,
+                  color: themeNotifier.isDarkMode
+                      ? Colors.green[300]!
+                      : Colors.green,
                   size: 160,
                   label: "Calories",
                   value: "${basketManager.totalCalories} kcal",
-                  total: "2230 kcal",
+                  total: "$dailyCalories kcal",
                 ),
               ),
               SizedBox(height: 30),
@@ -136,25 +170,32 @@ class _DashboardState extends State<Dashboard> {
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
                   HomePageProgress(
-                    percentage: (basketManager.totalFats / 65) * 100,
-                    color: themeNotifier.isDarkMode ? Color.fromARGB(255, 100, 150, 255) : Color.fromARGB(255, 20, 0, 243),
+                    percentage: (basketManager.totalFats / fatGoal) * 100,
+                    color: themeNotifier.isDarkMode
+                        ? Color.fromARGB(255, 100, 150, 255)
+                        : Color.fromARGB(255, 20, 0, 243),
                     label: "Fat",
                     value: "${basketManager.totalFats}g",
-                    total: "65g",
+                    total: "${fatGoal}g",
                   ),
                   HomePageProgress(
-                    percentage: (basketManager.totalCarbs / 450) * 100,
-                    color: themeNotifier.isDarkMode ? Color.fromARGB(255, 255, 180, 80) : Color.fromARGB(255, 255, 128, 1),
+                    percentage: (basketManager.totalCarbs / carbsGoal) * 100,
+                    color: themeNotifier.isDarkMode
+                        ? Color.fromARGB(255, 255, 180, 80)
+                        : Color.fromARGB(255, 255, 128, 1),
                     label: "Carbs",
                     value: "${basketManager.totalCarbs}g",
-                    total: "450g",
+                    total: "${carbsGoal}g",
                   ),
                   HomePageProgress(
-                    percentage: (basketManager.totalProtein / 180) * 100,
-                    color: themeNotifier.isDarkMode ? Color.fromARGB(255, 255, 100, 100) : Colors.red,
+                    percentage:
+                        (basketManager.totalProtein / proteinGoal) * 100,
+                    color: themeNotifier.isDarkMode
+                        ? Color.fromARGB(255, 255, 100, 100)
+                        : Colors.red,
                     label: "Protein",
                     value: "${basketManager.totalProtein}g",
-                    total: "180g",
+                    total: "${proteinGoal}g",
                   ),
                 ],
               ),
@@ -162,8 +203,10 @@ class _DashboardState extends State<Dashboard> {
 
               /// Tips Section
               Card(
-                color: themeNotifier.isDarkMode ? Colors.grey[900] : Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                color:
+                    themeNotifier.isDarkMode ? Colors.grey[900] : Colors.white,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16)),
                 elevation: 4,
                 child: Padding(
                   padding: EdgeInsets.all(16),
@@ -175,7 +218,9 @@ class _DashboardState extends State<Dashboard> {
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: themeNotifier.isDarkMode ? Colors.green[300] : Colors.green[800],
+                          color: themeNotifier.isDarkMode
+                              ? Colors.green[300]
+                              : Colors.green[800],
                         ),
                       ),
                       SizedBox(height: 8),
@@ -183,7 +228,9 @@ class _DashboardState extends State<Dashboard> {
                         _tips[_currentTipIndex],
                         style: TextStyle(
                           fontSize: 14,
-                          color: themeNotifier.isDarkMode ? Colors.green[200] : Colors.green[700],
+                          color: themeNotifier.isDarkMode
+                              ? Colors.green[200]
+                              : Colors.green[700],
                         ),
                       ),
                     ],
@@ -219,7 +266,7 @@ class HomePageProgress extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final themeNotifier = Provider.of<ThemeNotifier>(context, listen: false);
-    
+
     return Column(
       children: [
         SizedBox(
@@ -233,7 +280,9 @@ class HomePageProgress extends StatelessWidget {
                 painter: RingChartPainter(
                   percentage,
                   color,
-                  backgroundColor: themeNotifier.isDarkMode ? Colors.grey[700]! : Colors.grey[300]!,
+                  backgroundColor: themeNotifier.isDarkMode
+                      ? Colors.grey[700]!
+                      : Colors.grey[300]!,
                 ),
               ),
               Column(
@@ -270,7 +319,8 @@ class RingChartPainter extends CustomPainter {
   final Color color;
   final Color backgroundColor;
 
-  RingChartPainter(this.percentage, this.color, {this.backgroundColor = Colors.grey});
+  RingChartPainter(this.percentage, this.color,
+      {this.backgroundColor = Colors.grey});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -289,13 +339,35 @@ class RingChartPainter extends CustomPainter {
       ..strokeWidth = strokeWidth
       ..strokeCap = StrokeCap.round;
 
-    canvas.drawCircle(Offset(radius, radius), radius - strokeWidth / 2, backgroundPaint);
+    canvas.drawCircle(
+        Offset(radius, radius), radius - strokeWidth / 2, backgroundPaint);
 
     double angle = max((percentage / 100) * 2 * pi, 0.05);
-    Rect rect = Rect.fromCircle(center: Offset(radius, radius), radius: radius - strokeWidth / 2);
+    Rect rect = Rect.fromCircle(
+        center: Offset(radius, radius), radius: radius - strokeWidth / 2);
     canvas.drawArc(rect, -pi / 2, angle, false, fillPaint);
   }
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+}
+
+class NutritionGoals {
+  final int dailyCalories;
+  final int proteinGoal;
+  final int fatGoal;
+  final int carbsGoal;
+  final int weight;
+  final int height;
+  final int age;
+
+  const NutritionGoals(
+      {required this.dailyCalories,
+      required this.proteinGoal,
+      required this.fatGoal,
+      required this.carbsGoal,
+      required this.weight
+            ,required this.height,
+      required this.age
+      });
 }

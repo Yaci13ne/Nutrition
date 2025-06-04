@@ -1,21 +1,22 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_application_1/Insert_food.dart';
-import 'package:flutter_application_1/Me.dart';
-import 'package:flutter_application_1/app.dart';
-import 'package:flutter_application_1/basket.dart';
-import 'package:flutter_application_1/home.dart';
-import 'package:flutter_application_1/meal_creator.dart';
-import 'package:flutter_application_1/my_flutter_app_icons.dart';
-import 'package:flutter_application_1/theme_notifier.dart';
+
 import 'package:provider/provider.dart';
 
+import 'Insert_food.dart';
+import 'Me.dart';
+import 'app.dart';
+import 'basket.dart';
+import 'home.dart';
+import 'meal_creator.dart';
+import 'my_flutter_app_icons (1).dart';
+import 'theme_notifier.dart';
 class FabTabs extends StatefulWidget {
-  const FabTabs({super.key});
+  final NutritionGoals? nutritionGoals;
 
+  const FabTabs({super.key, this.nutritionGoals});
   @override
   State<FabTabs> createState() => _FabTabsState();
 }
-
 
 
 class _FabTabsState extends State<FabTabs> {
@@ -61,20 +62,24 @@ void _navigateToMealCreator() async {
       ),
     );
   }
-  /// **Handles Navigation to Insert Food Screen**
-  void _navigateToInsertFood() async {
-    final newFoodItem = await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => InsertFoodScreen()),
-    );
+void _navigateToInsertFood() async {
+  final newFoodItem = await Navigator.push(
+    context,
+    MaterialPageRoute(builder: (context) => InsertFoodScreen()),
+  );
 
-    if (newFoodItem != null) {
-      setState(() {
-        foodData.add(newFoodItem);
-        isFabExpanded = false;
-      });
-    }
+  if (newFoodItem != null) {
+    setState(() {
+      isFabExpanded = false;
+    });
+    // Trigger refresh in GymFitXHome
+    gymFitXHomeKey.currentState?.setState(() {
+      gymFitXHomeKey.currentState?.loadClickedItems();
+      gymFitXHomeKey.currentState?.refreshFoodList();
+    });
+
   }
+}
 
   void _openBasketScreen() {
     Navigator.push(
@@ -141,13 +146,14 @@ void _navigateToMealCreator() async {
     );
   }
 
-    Widget build(BuildContext context) {    final themeNotifier = Provider.of<ThemeNotifier>(context);
+    @override
+  Widget build(BuildContext context) {    final themeNotifier = Provider.of<ThemeNotifier>(context);
 
     return Scaffold(
       body: IndexedStack(
         index: currentIndex,
         children: [
-          Home(),
+          Home(goals: widget.nutritionGoals),
           GymFitXHome(
             key: gymFitXHomeKey, // Pass the key here
             foodData: foodData,
@@ -158,7 +164,7 @@ void _navigateToMealCreator() async {
       ),
       floatingActionButton: _buildFloatingActionButton(),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      bottomNavigationBar: BottomAppBar(
+      bottomNavigationBar: BottomAppBar(//--
 color:  themeNotifier.isDarkMode ?   Color.fromARGB(255, 0, 0, 0) : const Color.fromARGB(255, 76, 175, 80),
         shape: currentIndex == 1 ? const CircularNotchedRectangle() : null, // Remove notch on other pages
         notchMargin: currentIndex == 1 ? 10 : 0, // Ensure no gap
@@ -199,7 +205,7 @@ currentIndex == 1 ? SizedBox(width: 70) : SizedBox(width:2),
           Text(
             label,
             style: TextStyle(
-              color: currentIndex == index ? Colors.white : Colors.white,
+              color: currentIndex == index ? const Color.fromARGB(255, 255, 255, 255) : Colors.white,
             ),
           ),
         ],
@@ -208,13 +214,13 @@ currentIndex == 1 ? SizedBox(width: 70) : SizedBox(width:2),
   }
 }
 
-// Define the missing widgets
 class Home extends StatelessWidget {
-  const Home({super.key});
-
+  final NutritionGoals? goals;  // Add this line
+  
+  const Home({super.key, this.goals});  
   @override
   Widget build(BuildContext context) {
-    return Dashboard();
+    return Dashboard(goals: goals);
   }
 }
 
