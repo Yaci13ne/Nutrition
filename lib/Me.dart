@@ -1,41 +1,12 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/sidebar.dart';
 import 'package:provider/provider.dart';
-import 'theme_notifier.dart'; // Import the ThemeNotifier
+import 'package:video_player/video_player.dart';
 
-void main() {
-  runApp(
-    ChangeNotifierProvider(
-      create: (context) => ThemeNotifier(),
-      child: MyApp(),
-    ),
-  );
-}
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final themeNotifier = Provider.of<ThemeNotifier>(context, listen: true);
-    
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        fontFamily: 'Roboto',
-        brightness: Brightness.light,
-        primarySwatch: Colors.green,
-      ),
-      darkTheme: ThemeData(
-        fontFamily: 'Roboto',
-        brightness: Brightness.dark,
-        primarySwatch: Colors.green,
-      ),
-      themeMode: themeNotifier.isDarkMode ? ThemeMode.dark : ThemeMode.light,
-      home: ProfileScreen(),
-    );
-  }
-}
+import 'theme_notifier.dart';
+import 'user_provider.dart';
+import 'loginscreen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -45,255 +16,49 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  String? activityRate;
-  String userName = "Dalachi Yacine";
-  String userEmail = "Dyacine@gmail.com";
+  late VideoPlayerController _videoController;
 
   @override
-  Widget build(BuildContext context) {
-    final themeNotifier = Provider.of<ThemeNotifier>(context, listen: true);
-    final isDarkMode = themeNotifier.isDarkMode;
-    final theme = Theme.of(context);
-
-    return Scaffold(
-        drawer: Sidebar(
-        toggleDarkMode: () => themeNotifier.toggleTheme(),
-        isDarkMode: isDarkMode,
-      ),
-      backgroundColor: theme.scaffoldBackgroundColor,
-      body: Column(
-        children: [
-          // Header with Logo and Avatar
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Image.asset(
-                      'assets/logo.png',
-                      height: 50,
-                      color: isDarkMode ? Colors.white : null,
-                    ),
-                    Spacer(),
-                    
-                  ],
-                ),
-                Text(
-                  'Fuel your day with smart nutrition',
-                  style: TextStyle(
-                    fontSize: 12, 
-                    fontFamily: 'Lobster',
-                    color: theme.textTheme.bodySmall?.color,
-                  ),
-                ),
-                SizedBox(height: 10),
-              ],
-            ),
-          ),
-
-          // User Profile Section
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                CircleAvatar(
-                  radius: 25,
-                  backgroundColor: theme.cardColor,
-                  backgroundImage: NetworkImage(
-                    "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=1000&auto=format&fit=crop",
-                  ),
-                ),
-                SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text("Name:", 
-                          style: TextStyle(
-                            fontSize: 16, 
-                            fontWeight: FontWeight.bold,
-                            color: theme.textTheme.bodyLarge?.color,
-                          )),
-                      Text(userName, 
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: theme.textTheme.bodyLarge?.color,
-                          )),
-                      SizedBox(height: 4),
-                      Text("Email:", 
-                          style: TextStyle(
-                            fontSize: 12, 
-                            color: theme.textTheme.bodySmall?.color,
-                          )),
-                      Text(userEmail, 
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: theme.textTheme.bodyLarge?.color,
-                          )),
-                      SizedBox(height: 10),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          ElevatedButton.icon(
-                            onPressed: _showEditProfileDialog,
-                            icon: Icon(Icons.edit, color: Colors.white),
-                            label: Text("Edit profile"),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.blue,
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              padding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-                            ),
-                          ),
-                          ElevatedButton.icon(
-                            onPressed: () {
-                              print("User logged out");
-                            },
-                            icon: Icon(Icons.exit_to_app, color: Colors.white),
-                            label: Text("Log out"),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.red,
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              padding: EdgeInsets.symmetric(horizontal: 15, vertical: 10),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          SizedBox(height: 20),
-
-          // Profile Form Section
-          Expanded(
-            child: Container(
-              padding: EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: isDarkMode 
-                      ? [Color(0xFF1B5E20), Color(0xFF121212)] 
-                      : [Color(0xFF47DF7C), Color(0xFFFFFFFF)],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                ),
-                borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
-                boxShadow: [
-                  BoxShadow(
-                    color: isDarkMode ? Colors.black : Colors.grey.withOpacity(0.2), 
-                    blurRadius: 5,
-                  ),
-                ],
-              ),
-              child: ListView(
-                children: [
-                  _buildTextField("Weight", theme),
-                  _buildTextField("Height", theme),
-                  _buildTextField("Age", theme),
-                  SizedBox(height: 10),
-                  Text("Activity Rate", 
-                      style: TextStyle(
-                        fontSize: 16, 
-                        color: theme.textTheme.bodyLarge?.color,
-                      )),
-                  DropdownButtonFormField<String>(
-                    value: activityRate,
-                    onChanged: (value) {
-                      setState(() {
-                        activityRate = value;
-                      });
-                    },
-                    items: [
-                      DropdownMenuItem(
-                        value: "Not Very Active", 
-                        child: Text("Not Very Active",
-                            style: TextStyle(
-                              color: theme.textTheme.bodyLarge?.color,
-                            ))),
-                      DropdownMenuItem(
-                        value: "Quite Active", 
-                        child: Text("Quite Active",
-                            style: TextStyle(
-                              color: theme.textTheme.bodyLarge?.color,
-                            ))),
-                      DropdownMenuItem(
-                        value: "Very Active", 
-                        child: Text("Very Active",
-                            style: TextStyle(
-                              color: theme.textTheme.bodyLarge?.color,
-                            ))),
-                    ],
-                    decoration: InputDecoration(
-                      filled: true,
-                      fillColor: theme.cardColor,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide.none,
-                      ),
-                      contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-                    ),
-                    dropdownColor: theme.cardColor,
-                    style: TextStyle(color: theme.textTheme.bodyLarge?.color),
-                  ),
-                  SizedBox(height: 20),
-                  Center(
-                    child: ElevatedButton(
-                      onPressed: () {
-                        print("Profile saved");
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Color(0xFF47DF7C),
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        padding: EdgeInsets.symmetric(horizontal: 70, vertical: 22),
-                      ),
-                      child: Text("Save Changes"),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
+  void initState() {
+    super.initState();
+    _videoController = VideoPlayerController.asset('assets/background.mp4')
+      ..initialize().then((_) {
+        _videoController.setLooping(true);
+        _videoController.setVolume(0.0);
+        _videoController.play();
+        setState(() {});
+      });
   }
 
-  Widget _buildTextField(String label, ThemeData theme) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, 
-              style: TextStyle(
-                fontSize: 16, 
-                color: theme.textTheme.bodyLarge?.color,
-              )),
-          TextField(
-            keyboardType: TextInputType.number,
-            style: TextStyle(color: theme.textTheme.bodyLarge?.color),
-            decoration: InputDecoration(
-              filled: true,
-              fillColor: theme.cardColor,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide.none,
-              ),
-              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+  @override
+  void dispose() {
+    _videoController.dispose();
+    super.dispose();
+  }
+
+  void _showLogoutConfirmation() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text("Logout"),
+        content: Text("Are you sure you want to log out?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text("Cancel"),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => LoginScreen()),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
             ),
+            child: Text("Logout"),
           ),
         ],
       ),
@@ -301,65 +66,42 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   void _showEditProfileDialog() {
-    final themeNotifier = Provider.of<ThemeNotifier>(context, listen: false);
-    final isDarkMode = themeNotifier.isDarkMode;
-    final theme = Theme.of(context);
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
 
-    TextEditingController nameController = TextEditingController(text: userName);
-    TextEditingController emailController = TextEditingController(text: userEmail);
+    TextEditingController nameController =
+        TextEditingController(text: userProvider.user.name);
+    TextEditingController emailController =
+        TextEditingController(text: userProvider.user.email);
 
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          backgroundColor: theme.dialogBackgroundColor,
-          title: Text(
-            "Edit Profile",
-            style: TextStyle(color: theme.textTheme.titleLarge?.color),
-          ),
+          title: Text("Edit Profile"),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: nameController,
-                style: TextStyle(color: theme.textTheme.bodyLarge?.color),
-                decoration: InputDecoration(
-                  labelText: "Name",
-                  labelStyle: TextStyle(color: theme.textTheme.bodyLarge?.color),
-                ),
+                decoration: InputDecoration(labelText: "Name"),
               ),
               TextField(
                 controller: emailController,
-                style: TextStyle(color: theme.textTheme.bodyLarge?.color),
-                decoration: InputDecoration(
-                  labelText: "Email",
-                  labelStyle: TextStyle(color: theme.textTheme.bodyLarge?.color),
-                ),
-                keyboardType: TextInputType.emailAddress,
+                decoration: InputDecoration(labelText: "Email"),
               ),
             ],
           ),
           actions: [
             TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
-              child: Text(
-                "Cancel",
-                style: TextStyle(color: theme.textTheme.bodyLarge?.color),
-              ),
+              onPressed: () => Navigator.pop(context),
+              child: Text("Cancel"),
             ),
             ElevatedButton(
               onPressed: () {
-                setState(() {
-                  userName = nameController.text;
-                  userEmail = emailController.text;
-                });
+                userProvider.updateName(nameController.text);
+                userProvider.updateEmail(emailController.text);
                 Navigator.pop(context);
               },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: theme.primaryColor,
-              ),
               child: Text("Save"),
             ),
           ],
@@ -367,4 +109,114 @@ class _ProfileScreenState extends State<ProfileScreen> {
       },
     );
   }
+
+  @override
+  Widget build(BuildContext context) {
+    final userProvider = Provider.of<UserProvider>(context);
+    final themeNotifier = Provider.of<ThemeNotifier>(context);
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
+    return Scaffold(
+      drawer: Sidebar(
+        toggleDarkMode: () => themeNotifier.toggleTheme(),
+        isDarkMode: isDarkMode,
+      ),
+      body: Stack(
+        children: [
+          // Video background
+          if (_videoController.value.isInitialized)
+            SizedBox.expand(
+              child: FittedBox(
+                fit: BoxFit.cover,
+                child: SizedBox(
+                  width: _videoController.value.size.width,
+                  height: _videoController.value.size.height,
+                  child: VideoPlayer(_videoController),
+                ),
+              ),
+            ),
+
+          // Dark overlay
+          Container(
+            color: Colors.black.withOpacity(0.5),
+          ),
+
+          // Content
+          SingleChildScrollView(
+            child: Column(
+              children: [
+                const SizedBox(height: 60),
+                Center(
+                  child: CircleAvatar(
+                    radius: 70,
+                    backgroundColor: Colors.white,
+                    backgroundImage: userProvider.user.profileImage != null
+                        ? FileImage(userProvider.user.profileImage!)
+                        : NetworkImage(
+                            "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=1000&auto=format&fit=crop",
+                          ) as ImageProvider,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  userProvider.user.name,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  userProvider.user.email,
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 16,
+                  ),
+                ),
+                const SizedBox(height: 30),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    ElevatedButton.icon(
+                      onPressed: _showEditProfileDialog,
+                      icon: Icon(Icons.edit),
+                      label: Text("Edit Profile"),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Theme.of(context).primaryColor,
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    ElevatedButton.icon(
+                      onPressed: _showLogoutConfirmation,
+                      icon: Icon(Icons.exit_to_app),
+                      label: Text("Logout"),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                        foregroundColor: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+
+class Details {
+  final int weight;
+  final int height;
+  final int age;
+
+  const Details({
+    required this.weight,
+    required this.height,
+    required this.age,
+  });
 }
