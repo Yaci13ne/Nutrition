@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/theme_notifier.dart';
@@ -35,23 +36,21 @@ class _InsertFoodScreenState extends State<InsertFoodScreen> {
     List<String>? savedFoods = prefs.getStringList('food_list');
     bool? savedDarkMode = prefs.getBool('isDarkMode');
 
-    if (savedFoods != null) {
-      setState(() {
-        foodList = savedFoods.map((food) {
-          List<String> fields = food.split(',');
-          return {
-            'name': fields[0],
-            'description': fields[1],
-            'calories': fields[2],
-            'protein': fields[3],
-            'carbs': fields[4],
-            'fats': fields[5],
-            'image': fields.length > 6 ? fields[6] : '',
-          };
-        }).toList();
-      });
-    }
-
+    setState(() {
+      foodList = savedFoods?.map((food) {
+        List<String> fields = food.split(',');
+        return {
+          'name': fields[0],
+          'description': fields[1],
+          'calories': fields[2],
+          'protein': fields[3],
+          'carbs': fields[4],
+          'fats': fields[5],
+          'image': fields.length > 6 ? fields[6] : '',
+        };
+      }).toList()?? [];
+    });
+  
     setState(() {
       _isDarkMode = savedDarkMode ?? Theme.of(context).brightness == Brightness.dark;
     });
@@ -63,31 +62,48 @@ class _InsertFoodScreenState extends State<InsertFoodScreen> {
       _isDarkMode = !_isDarkMode;
     });
     await prefs.setBool('isDarkMode', _isDarkMode);
+  
+  
+  
+  
+  }
+  
+  
+  
+void saveFood() async {
+  if (nameController.text.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Please enter a food name')),
+    );
+    return;
   }
 
-  void saveFood() {
-    if (nameController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Please enter a food name')),
-      );
-      return;
-    }
+  Map<String, dynamic> newFood = {
+    'name': nameController.text,
+    'description': descriptionController.text,
+    'calories': caloriesController.text,
+    'protein': proteinController.text,
+    'carbs': carbsController.text,
+    'fats': fatsController.text,
+    'image': _selectedImage?.path ?? '',
+    'createdByMe': true,  // Add this flag
+    'isMeal': false,      // Make sure it's not marked as a meal
+  };
 
-    Map<String, String> food = {
-      'name': nameController.text,
-      'description': descriptionController.text,
-      'calories': caloriesController.text,
-      'protein': proteinController.text,
-      'carbs': carbsController.text,
-      'fats': fatsController.text,
-      'image': _selectedImage?.path ?? '',
-    };
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  String? clickedJson = prefs.getString('clickedItems');
+  List<Map<String, dynamic>> clickedItems = [];
 
-    foodList.add(food);
-    _saveToPreferences();
-    Navigator.pop(context, food);
+// Line 97
+clickedItems = List<Map<String, dynamic>>.from(json.decode(clickedJson ?? '[]'));
+  // Avoid duplicate
+  if (!clickedItems.any((item) => item['name'] == newFood['name'])) {
+    clickedItems.add(newFood);
+    await prefs.setString('clickedItems', json.encode(clickedItems));
   }
 
+  Navigator.pop(context, newFood);
+}
   Future<void> _saveToPreferences() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     List<String> savedFoods = foodList.map((food) =>
@@ -108,7 +124,8 @@ class _InsertFoodScreenState extends State<InsertFoodScreen> {
     }
   }
 
-Widget build(BuildContext context) {
+@override
+  Widget build(BuildContext context) {
   final themeNotifier = Provider.of<ThemeNotifier>(context);
   final isDarkMode = themeNotifier.isDarkMode;
 
